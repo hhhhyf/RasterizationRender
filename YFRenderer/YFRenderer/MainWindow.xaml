@@ -1,0 +1,12 @@
+﻿<Window x:Class="YFRenderer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:YFRenderer"
+        mc:Ignorable="d"
+        Title="YFRender" Height="912" Width="1200">
+    <Grid Margin="0,0,331,-20" RenderTransformOrigin="0.794,0.803" HorizontalAlignment="Right" Width="861">
+        <Image x:Name="image" HorizontalAlignment="Left" Margin="61,100,0,104" Width="800"/>
+    </Grid>
+</Window>
