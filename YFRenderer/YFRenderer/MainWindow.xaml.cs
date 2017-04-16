@@ -13,7 +13,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Drawing;
-
+using YFRenderer.Core;
+using YFRenderer.Primitives;
 
 namespace YFRenderer
 {
@@ -39,20 +40,21 @@ namespace YFRenderer
             System.Windows.Threading.DispatcherTimer dispatcherTimer = new System.Windows.Threading.DispatcherTimer();
             dispatcherTimer.Tick += new EventHandler(TickEvent);
             dispatcherTimer.Interval = new TimeSpan(0,0,0,0, 500);
-            dispatcherTimer.Start();        
-            Buffer.Instance.clearBuffer();
+            dispatcherTimer.Start();
+            RenderBuffer.Instance.clearBuffer();
         }
 
         private void TickEvent(object sender, EventArgs e)
         {
-            var color = (Color)ColorConverter.ConvertFromString("White");
-              for (int i = 100; i < 300; i++)
-              {
-                for (int j  = 100;j < 300; j++)
-                    Buffer.Instance.SetPixel(i, j, color);
-              }
+            Vector2d p1 = new Vector2d(0, 0);
+            Vector2d p2 = new Vector2d(400, 600);
+            Draw.Draw2DSegement(p1, p2);
 
-            Buffer.Instance.WriteToPixelArray(_pixelArray);
+            Vector2d p3 = new Vector2d(400, 0);
+            Vector2d p4 = new Vector2d(800, 600);
+            Draw.Draw2DSegement2(p3, p4);
+
+            RenderBuffer.Instance.WriteToPixelArray(_pixelArray);
             _wb.WritePixels(_rect, _pixelArray, _stride, 0);
             this.image.Source = _wb;
         }

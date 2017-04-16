@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace YFRenderer.Primitives
 {
-    class Vector2d
+    public class Vector2d
     {
-        public float x;
-        public float y;
+        public int x;
+        public int y;
 
-        public Vector2d(float x, float y)
+        public Vector2d(int x, int y)
         {
             this.x = x;
             this.y = y;
@@ -47,10 +47,7 @@ namespace YFRenderer.Primitives
             return c1^c2;
         }
 
-        public void DrawLine(Vector2d c1, Vector2d c2)
-        {
-
-        }
+ 
      
     }
 }
