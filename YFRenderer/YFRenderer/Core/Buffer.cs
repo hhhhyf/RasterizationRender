@@ -54,6 +54,21 @@ namespace YFRenderer.Core
             SetPixel(x, y, DefaultColor, brightness);
         }
 
+        public Color GetPixelColor(int x , int y)
+        {
+            Color c = new Color();
+            c = Color.FromScRgb(0,0,0,0);
+            if (x >= pixels.GetLength(1) || y >= pixels.GetLength(0))
+                return c;
+
+            c.R = pixels[y, x, 0];
+            c.G = pixels[y, x, 1];
+            c.B = pixels[y, x, 2];
+            c.A = pixels[y, x, 3];
+
+            return c;
+        }
+
         //填充缓冲区
         public void clearBuffer()
         {

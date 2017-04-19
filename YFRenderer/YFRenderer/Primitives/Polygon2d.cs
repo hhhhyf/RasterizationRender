@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using YFRenderer.Core;
+using System.Windows.Media;
 
 namespace YFRenderer.Primitives
 {
@@ -14,7 +15,7 @@ namespace YFRenderer.Primitives
        public float dx; //斜率的倒数
     };
 
-    class Polygon2d
+    public class Polygon2d
     {
         public List<Vector2d> Vertices = new List<Vector2d>();
         List<List<Edge>> EdgeTable = new List<List<Edge>>();
@@ -22,7 +23,8 @@ namespace YFRenderer.Primitives
         int ymin = 0;
         int ymax = 0;
 
-        public void sacnlinefill()
+        //scanline fill
+        public void SacnlineFill()
         {
             if (Vertices.Count == 0)
                 return;
@@ -169,6 +171,61 @@ namespace YFRenderer.Primitives
             }
         }
 
+        //Flood Fill 
+        public void FloodFill()
+        {
+            if (Vertices.Count == 0)
+                return;
+
+            for (int i = 0; i < Vertices.Count; i++)
+            {
+                Draw.Draw2DSegement(Vertices[i], Vertices[(i + 1) % Vertices.Count]);
+            }
+
+            Stack<Vector2d> q = new Stack<Vector2d>();
+            q.Push(new Vector2d(Vertices[0].x, Vertices[0].y));
+            Color c = (Color)ColorConverter.ConvertFromString("White");
+
+            while (q.Count > 0 )
+            {
+                Vector2d v = q.Pop();
+                List<Vector2d> list = new List<Vector2d>();
+
+                //4个方向
+                list.Add(new Vector2d(v.x + 1, v.y));
+                list.Add(new Vector2d(v.x - 1, v.y));
+                list.Add(new Vector2d(v.x , v.y + 1));
+                list.Add(new Vector2d(v.x , v.y - 1));
+
+                RenderBuffer.Instance.SetPixel(v.x, v.y);
+                for(int i=0; i < list.Count; i++)
+                {
+                    if (RenderBuffer.Instance.GetPixelColor(list[i].x, list[i].y) != c && Draw.IsPointInPolygon(list[i], Vertices))
+                    {
+                        q.Push(list[i]);
+                    }
+                }    
+            }
+
+        }
+
+        void FloodFillImplement(int x, int y)
+        {
+            //递归会堆栈溢出。。。
+            Vector2d v = new Vector2d(x, y);
+            if (!Draw.IsPointInPolygon(v, Vertices))
+                return;
+            Color c = (Color)ColorConverter.ConvertFromString("White");
+            if (RenderBuffer.Instance.GetPixelColor(x, y) != c)
+                return;
+
+            RenderBuffer.Instance.SetPixel(x, y);
+
+            FloodFillImplement(x + 1, y );
+            FloodFillImplement(x - 1, y);
+            FloodFillImplement(x, y +1 );
+            FloodFillImplement(x, y -1);
+        }
     }
 
 }
