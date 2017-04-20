@@ -33,30 +33,61 @@ namespace YFRenderer
 
         byte[] _pixelArray = new byte[Common.CanvasWidth * Common.CanvasHeight * 4];
 
+        Mesh mesh = new Mesh("Cube", 8, 12);
+
+        Camera camera = new Camera();
+
         public MainWindow()
         {
             InitializeComponent();
 
             System.Windows.Threading.DispatcherTimer dispatcherTimer = new System.Windows.Threading.DispatcherTimer();
             dispatcherTimer.Tick += new EventHandler(TickEvent);
-            dispatcherTimer.Interval = new TimeSpan(0,0,0,0, 500);
+            dispatcherTimer.Interval = new TimeSpan(0,0,0,0, 10);
             dispatcherTimer.Start();
             RenderBuffer.Instance.clearBuffer();
+
+
+            mesh.Vertices[0] = new Vector3d(-1, 1, 1);
+            mesh.Vertices[1] = new Vector3d(1, 1, 1);
+            mesh.Vertices[2] = new Vector3d(-1, -1, 1);
+            mesh.Vertices[3] = new Vector3d(1, -1, 1);
+            mesh.Vertices[4] = new Vector3d(-1, 1, -1);
+            mesh.Vertices[5] = new Vector3d(1, 1, -1);
+            mesh.Vertices[6] = new Vector3d(1, -1, -1);
+            mesh.Vertices[7] = new Vector3d(-1, -1, -1);
+
+            mesh.Faces[0] = new Face { A = 0, B = 1, C = 2 };
+            mesh.Faces[1] = new Face { A = 1, B = 2, C = 3 };
+            mesh.Faces[2] = new Face { A = 1, B = 3, C = 6 };
+            mesh.Faces[3] = new Face { A = 1, B = 5, C = 6 };
+            mesh.Faces[4] = new Face { A = 0, B = 1, C = 4 };
+            mesh.Faces[5] = new Face { A = 1, B = 4, C = 5 };
+
+            mesh.Faces[6] = new Face { A = 2, B = 3, C = 7 };
+            mesh.Faces[7] = new Face { A = 3, B = 6, C = 7 };
+            mesh.Faces[8] = new Face { A = 0, B = 2, C = 7 };
+            mesh.Faces[9] = new Face { A = 0, B = 4, C = 7 };
+            mesh.Faces[10] = new Face { A = 4, B = 5, C = 6 };
+            mesh.Faces[11] = new Face { A = 4, B = 6, C = 7 };
+
+            camera.Position = new Vector3d(0, 0, 10.0f);
+            camera.Target = Vector3d.Zero;
         }
 
         private void TickEvent(object sender, EventArgs e)
         {
-            Vector2d p1 = new Vector2d(0, 0);
-            Vector2d p2 = new Vector2d(400, 600);
-            Draw.Draw2DSegement(p1, p2);
+            RenderBuffer.Instance.clearBuffer();
 
-            Vector2d p3 = new Vector2d(400, 0);
-            Vector2d p4 = new Vector2d(800, 600);
-            Draw.Draw2DSegement2(p3, p4);
+            mesh.Rotation.x = mesh.Rotation.x+ 0.01f;
+            mesh.Rotation.y = mesh.Rotation.y + 0.01f;
+
+            RenderBuffer.Instance.Render(camera, mesh);
 
             RenderBuffer.Instance.WriteToPixelArray(_pixelArray);
             _wb.WritePixels(_rect, _pixelArray, _stride, 0);
             this.image.Source = _wb;
+            
         }
     }
 }
