@@ -22,5 +22,7 @@ namespace YFRenderer.Core
         {
             return (num - Math.Truncate(num));
         }
+
+      
     }
 }

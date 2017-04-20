@@ -4,7 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
-
+using YFRenderer.Primitives;
+ 
 
 namespace YFRenderer.Core
 {
@@ -47,6 +48,11 @@ namespace YFRenderer.Core
         public void SetPixel(int x, int y)
         {
             SetPixel(x, y, DefaultColor, 1);
+        }
+
+        public void SetPixel(float x, float y)
+        {
+            SetPixel((int)x, (int)y, DefaultColor, 1);
         }
 
         public void SetPixel(int x, int y, float brightness)
@@ -95,6 +101,54 @@ namespace YFRenderer.Core
                 {
                     for (int i = 0; i < 4; i++)
                         _pixelArray[index++] = pixels[row, col, i];
+                }
+            }
+        }
+
+        public Vector2d Project(Vector3d coord, Primitives.Matrix transMat)
+        {
+            // 进行坐标变换  
+            var point = Vector3d.TransformCoordinate(coord, transMat);
+
+            // 变换后的坐标起始点是坐标系的中心点  
+            // 但是，在屏幕上，我们以左上角为起始点  
+            // 我们需要重新计算使他们的起始点变成左上角  
+            var x = point.x * Common.CanvasWidth + Common.CanvasWidth / 2.0f;
+            var y = -point.y * Common.CanvasHeight + Common.CanvasHeight / 2.0f;
+            return (new Vector2d(x, y));
+        }
+
+        public void Render(Camera camera, params Mesh[] meshes)
+        {
+            //观察矩阵
+            var viewMatrix = Primitives.Matrix.LookAtLH(camera.Position, camera.Target, Vector3d.UnitY);
+            //投影矩阵
+            var projectionMatrix = Primitives.Matrix.PerspectiveFovLH(0.78f,
+                                                           (float)Common.CanvasWidth / Common.CanvasHeight,
+                                                           0.01f, 1.0f);
+
+            foreach (Mesh mesh in meshes)
+            {
+                //  世界矩阵
+                var worldMatrix = Primitives.Matrix.RotationYawPitchRoll(mesh.Rotation.y,
+                                                              mesh.Rotation.x, mesh.Rotation.z) *
+                                  Primitives.Matrix.Translation(mesh.Position);
+
+                var transformMatrix = worldMatrix * viewMatrix * projectionMatrix;
+
+                foreach (var face in mesh.Faces)
+                {
+                    var vertexA = mesh.Vertices[face.A];
+                    var vertexB = mesh.Vertices[face.B];
+                    var vertexC = mesh.Vertices[face.C];
+
+                    var pixelA = Project(vertexA, transformMatrix);
+                    var pixelB = Project(vertexB, transformMatrix);
+                    var pixelC = Project(vertexC, transformMatrix);
+
+                    Draw.Draw2DSegement3(pixelA, pixelB);
+                    Draw.Draw2DSegement3(pixelB, pixelC);
+                    Draw.Draw2DSegement3(pixelC, pixelA);
                 }
             }
         }

@@ -20,22 +20,22 @@ namespace YFRenderer.Core
             if (bSteep)
             {
                 //如果斜率小于0就把xy坐标互换
-                Common.Swap<int>(ref StartPoint.x, ref StartPoint.y);
-                Common.Swap<int>(ref EndPoint.x, ref EndPoint.y);
+                Common.Swap<float>(ref StartPoint.x, ref StartPoint.y);
+                Common.Swap<float>(ref EndPoint.x, ref EndPoint.y);
             }
 
             //保证从左往右画
             if (StartPoint.x > EndPoint.x)
             {
-                Common.Swap<int>(ref StartPoint.x, ref EndPoint.x);
-                Common.Swap<int>(ref StartPoint.y, ref EndPoint.y);
+                Common.Swap<float>(ref StartPoint.x, ref EndPoint.x);
+                Common.Swap<float>(ref StartPoint.y, ref EndPoint.y);
             }
 
-            int deltX = EndPoint.x - StartPoint.x;
-            int deltY = Math.Abs(EndPoint.y - StartPoint.y);
-            int error = deltX/2;
+            float deltX = EndPoint.x - StartPoint.x;
+            float deltY = Math.Abs(EndPoint.y - StartPoint.y);
+            float error = deltX/2;
             int yStep;
-            int y = StartPoint.y;
+            float y = StartPoint.y;
             if (StartPoint.y < EndPoint.y)
             {
                 yStep = 1;
@@ -45,7 +45,7 @@ namespace YFRenderer.Core
                 yStep = -1;
             }
 
-            for (int x = StartPoint.x; x <= EndPoint.x; x++)
+            for (float x = StartPoint.x; x <= EndPoint.x; x++)
             {
                 if(bSteep)
                 {
@@ -80,15 +80,15 @@ namespace YFRenderer.Core
             //如果斜率小于0就把xy坐标互换
             if (Math.Abs(dx) < Math.Abs(dy))
             {
-                Common.Swap<int>(ref StartPoint.x, ref StartPoint.y);
-                Common.Swap<int>(ref EndPoint.x, ref EndPoint.y);
+                Common.Swap< float>(ref StartPoint.x, ref StartPoint.y);
+                Common.Swap<float>(ref EndPoint.x, ref EndPoint.y);
                 Common.Swap<double>(ref dx, ref dy);
             }
             //保证从左往右画
             if (StartPoint.x > EndPoint.x)
             {
-                Common.Swap<int>(ref StartPoint.x, ref EndPoint.x);
-                Common.Swap<int>(ref StartPoint.y, ref EndPoint.y);
+                Common.Swap<float>(ref StartPoint.x, ref EndPoint.x);
+                Common.Swap<float>(ref StartPoint.y, ref EndPoint.y);
             }
 
             //处理左端点
@@ -146,19 +146,43 @@ namespace YFRenderer.Core
             }
         }
 
+        public static void Draw2DSegement3(Vector2d point0, Vector2d point1)
+        {
+            int x0 = (int)point0.x;
+            int y0 = (int)point0.y;
+            int x1 = (int)point1.x;
+            int y1 = (int)point1.y;
+
+            var dx = Math.Abs(x1 - x0);
+            var dy = Math.Abs(y1 - y0);
+            var sx = (x0 < x1) ? 1 : -1;
+            var sy = (y0 < y1) ? 1 : -1;
+            var err = dx - dy;
+
+            while (true)
+            {
+                RenderBuffer.Instance.SetPixel(x0, y0);
+
+                if ((x0 == x1) && (y0 == y1)) break;
+                var e2 = 2 * err;
+                if (e2 > -dy) { err -= dy; x0 += sx; }
+                if (e2 < dx) { err += dx; y0 += sy; }
+            }
+        }
+
         //点在多边形内
         public static bool IsPointInPolygon(Vector2d Point, List<Vector2d> Vertices )
         {
-            List<int> polyX = new List<int>();
-            List<int> polyY = new List<int>();
+            List<float> polyX = new List<float>();
+            List<float> polyY = new List<float>();
             foreach(var p in Vertices)
             {
                 polyX.Add(p.x);
                 polyY.Add(p.y);
             }
 
-            int x = Point.x;
-            int y = Point.y;
+            float x = Point.x;
+            float y = Point.y;
             int polySides = polyX.Count;
             int i, j = polySides - 1;
             bool oddNodes = false;
@@ -204,7 +228,7 @@ namespace YFRenderer.Core
                 }
 
                 // compute the cross product of vectors (center -> a) x (center -> b)
-                int det = (a.x - center.x) * (b.y - center.y) - (b.x - center.x) * (a.y - center.y);
+                float det = (a.x - center.x) * (b.y - center.y) - (b.x - center.x) * (a.y - center.y);
                 if (det < 0)
                     return 1;
                 if (det > 0)
@@ -212,8 +236,8 @@ namespace YFRenderer.Core
 
                 // points a and b are on the same line from the center
                 // check which point is closer to the center
-                int d1 = (a.x - center.x) * (a.x - center.x) + (a.y - center.y) * (a.y - center.y);
-                int d2 = (b.x - center.x) * (b.y - center.x) + (b.y - center.y) * (b.y - center.y);
+                float d1 = (a.x - center.x) * (a.x - center.x) + (a.y - center.y) * (a.y - center.y);
+                float d2 = (b.x - center.x) * (b.y - center.x) + (b.y - center.y) * (b.y - center.y);
                 if (d1 > d2)
                     return 1;
                 else
