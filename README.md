@@ -1,4 +1,4 @@
-# SimpleRenderer
+# Rasterization Render
  A simple rasterization Renderer
 
 # 2d Module:
