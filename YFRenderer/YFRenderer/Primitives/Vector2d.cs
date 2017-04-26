@@ -8,10 +8,10 @@ namespace YFRenderer.Primitives
 {
     public class Vector2d
     {
-        public int x;
-        public int y;
+        public float x;
+        public float y;
 
-        public Vector2d(int x, int y)
+        public Vector2d(float x, float y)
         {
             this.x = x;
             this.y = y;

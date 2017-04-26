@@ -7,6 +7,9 @@
         mc:Ignorable="d"
         Title="YFRender" Height="912" Width="1200">
     <Grid Margin="0,0,331,-20" RenderTransformOrigin="0.794,0.803" HorizontalAlignment="Right" Width="861">
-        <Image x:Name="image" HorizontalAlignment="Left" Margin="61,100,0,104" Width="800"/>
+        <Image x:Name="image" HorizontalAlignment="Left" Margin="10,10,0,194" Width="800"/>
+        <TextBlock x:Name="FPS" HorizontalAlignment="Left" Margin="10,10,0,0" TextWrapping="Wrap" Text="TextBlock" VerticalAlignment="Top"/>
     </Grid>
 </Window>
+    
+    

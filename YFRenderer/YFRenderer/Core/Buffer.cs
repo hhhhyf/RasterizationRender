@@ -19,8 +19,13 @@ namespace YFRenderer.Core
 
         //用一个数组模拟缓冲区
         private static byte[,,] pixels = new byte[Common.CanvasHeight, Common.CanvasWidth, 4];
+        //深度缓冲区
+        private readonly float[] depthBuffer = new float[Common.CanvasWidth * Common.CanvasHeight];
 
-        public static RenderBuffer Instance
+       // private object[] lockBuffer = new object[Common.CanvasWidth * Common.CanvasHeight];
+   
+
+    public static RenderBuffer Instance
         {
             get
             {
@@ -60,6 +65,28 @@ namespace YFRenderer.Core
             SetPixel(x, y, DefaultColor, brightness);
         }
 
+        public void SetPixel3d(int x, int y, float z, Color color)
+        {
+            if (x >= pixels.GetLength(1) || y >= pixels.GetLength(0))
+                return;
+            var index = x + y * Common.CanvasWidth;
+            //lock (lockBuffer[index])
+            //{
+
+                if (depthBuffer[index] < z)
+                {
+                    return; // 深度测试不通过  
+                }
+
+                depthBuffer[index] = z;
+
+                pixels[y, x, 0] = color.R;
+                pixels[y, x, 1] = color.G;
+                pixels[y, x, 2] = color.B;
+                pixels[y, x, 3] = color.A;
+            //}
+        }
+
         public Color GetPixelColor(int x , int y)
         {
             Color c = new Color();
@@ -89,6 +116,16 @@ namespace YFRenderer.Core
                     pixels[row, col, 3] = 255;
                 }
             }
+
+            for (var index = 0; index < depthBuffer.Length; index++)
+            {
+                depthBuffer[index] = float.MaxValue;
+            }
+
+            //for (var i = 0; i < lockBuffer.Length; i++)
+            //{
+            //    lockBuffer[i] = new object();
+            //}
         }
 
         //输出缓冲区
@@ -105,18 +142,37 @@ namespace YFRenderer.Core
             }
         }
 
-        public Vector2d Project(Vector3d coord, Primitives.Matrix transMat)
+        public Vertex Project(Vertex vertex, Primitives.Matrix transMat, Primitives.Matrix world)
         {
             // 进行坐标变换  
-            var point = Vector3d.TransformCoordinate(coord, transMat);
+            var point = Vector3d.TransformCoordinate(vertex.Coordinates, transMat);
+            // 在三维世界中转换坐标和法线的顶点  
+            var point3dWorld = Vector3d.TransformCoordinate(vertex.Coordinates, world);
+            var normal3dWorld = Vector3d.TransformCoordinate(vertex.Normal, world);
+ 
 
             // 变换后的坐标起始点是坐标系的中心点  
             // 但是，在屏幕上，我们以左上角为起始点  
             // 我们需要重新计算使他们的起始点变成左上角  
             var x = point.x * Common.CanvasWidth + Common.CanvasWidth / 2.0f;
             var y = -point.y * Common.CanvasHeight + Common.CanvasHeight / 2.0f;
+            return new Vertex
+            {
+                Coordinates = new Vector3d(x, y, point.z),
+                Normal = normal3dWorld,
+                WorldCoordinates = point3dWorld,
+                TextureCoordinates = vertex.TextureCoordinates
+            };
+        }
+
+        public Vector2d Project2d(Vector3d coord, Primitives.Matrix transMat)
+        {
+            var point = Vector3d.TransformCoordinate(coord, transMat);
+            var x = point.x * Common.CanvasWidth + Common.CanvasWidth / 2.0f;
+            var y = -point.y * Common.CanvasHeight + Common.CanvasHeight / 2.0f;
             return (new Vector2d(x, y));
         }
+
 
         public void Render(Camera camera, params Mesh[] meshes)
         {
@@ -136,19 +192,25 @@ namespace YFRenderer.Core
 
                 var transformMatrix = worldMatrix * viewMatrix * projectionMatrix;
 
+                var faceIndex = 0;
                 foreach (var face in mesh.Faces)
                 {
                     var vertexA = mesh.Vertices[face.A];
                     var vertexB = mesh.Vertices[face.B];
                     var vertexC = mesh.Vertices[face.C];
 
-                    var pixelA = Project(vertexA, transformMatrix);
-                    var pixelB = Project(vertexB, transformMatrix);
-                    var pixelC = Project(vertexC, transformMatrix);
+                    var pixelA = Project(vertexA, transformMatrix, worldMatrix);
+                    var pixelB = Project(vertexB, transformMatrix, worldMatrix);
+                    var pixelC = Project(vertexC, transformMatrix, worldMatrix);
 
-                    Draw.Draw2DSegement3(pixelA, pixelB);
-                    Draw.Draw2DSegement3(pixelB, pixelC);
-                    Draw.Draw2DSegement3(pixelC, pixelA);
+                    //Draw.Draw2DSegement3(pixelA, pixelB);
+                    //Draw.Draw2DSegement3(pixelB, pixelC);
+                    //Draw.Draw2DSegement3(pixelC, pixelA);
+ 
+                    
+                    Draw.DrawTriangle(pixelA, pixelB, pixelC, DefaultColor, mesh.Texture);
+                    faceIndex++;
+
                 }
             }
         }

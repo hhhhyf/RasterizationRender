@@ -29,18 +29,18 @@ namespace YFRenderer.Primitives
             if (Vertices.Count == 0)
                 return;
 
-            ymin = Vertices[0].y;
-            ymax = Vertices[0].y;
+            ymin = (int)Vertices[0].y;
+            ymax = (int)Vertices[0].y;
             for (int i = 0; i < Vertices.Count; i++)
             {
                 if (Vertices[i].y > ymax)
                 {
-                    ymax = Vertices[i].y;
+                    ymax = (int)Vertices[i].y;
                 }
 
                 if (Vertices[i].y < ymin)
                 {
-                    ymin = Vertices[i].y;
+                    ymin = (int)Vertices[i].y;
                 }
             }
              
@@ -76,20 +76,20 @@ namespace YFRenderer.Primitives
                         e.x = ps.x;
                         //连续单调递减的三个点，中间点要分开，不然水平扫描的时候就奇数个交点了。
                         if (pee.y >= pe.y)
-                            e.ymax = pe.y - 1;
+                            e.ymax = (int)pe.y - 1;
                         else
-                            e.ymax = pe.y;
+                            e.ymax = (int)pe.y;
 
-                        EdgeTable[ps.y - ymin].Add(e);
+                        EdgeTable[(int)ps.y - ymin].Add(e);
                     }
                     else
                     {
                         e.x = pe.x;
                         if (pss.y >= ps.y)
-                            e.ymax = ps.y - 1;
+                            e.ymax = (int)ps.y - 1;
                         else
-                            e.ymax = ps.y;
-                        EdgeTable[pe.y - ymin] .Add(e);
+                            e.ymax = (int)ps.y;
+                        EdgeTable[(int)pe.y - ymin] .Add(e);
                     }
                 }
             }
@@ -200,7 +200,7 @@ namespace YFRenderer.Primitives
                 RenderBuffer.Instance.SetPixel(v.x, v.y);
                 for(int i=0; i < list.Count; i++)
                 {
-                    if (RenderBuffer.Instance.GetPixelColor(list[i].x, list[i].y) != c && Draw.IsPointInPolygon(list[i], Vertices))
+                    if (RenderBuffer.Instance.GetPixelColor((int)list[i].x, (int)list[i].y) != c && Draw.IsPointInPolygon(list[i], Vertices))
                     {
                         q.Push(list[i]);
                     }

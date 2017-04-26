@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media;
 using YFRenderer.Primitives;
 
 
@@ -245,6 +246,243 @@ namespace YFRenderer.Core
 
             });
 
+        }
+
+        // 在两点之间从左到右绘制一条线段  
+        // papb -> pcpd  
+        // pa, pb, pc, pd在之前必须已经排好序 
+        public static void ProcessScanLine(ScanLineData data, Vertex va, Vertex vb, Vertex vc, Vertex vd, Color color, Texture texture)
+        {
+            Vector3d pa = va.Coordinates;
+            Vector3d pb = vb.Coordinates;
+            Vector3d pc = vc.Coordinates;
+            Vector3d pd = vd.Coordinates;
+
+            // 由当前的y值，我们可以计算出梯度  
+            // 以此再计算出 起始X(sx) 和 结束X(ex)  
+            // 如果pa.Y == pb.Y 或者 pc.Y== pd.y的话，梯度强制为1  
+            var gradient1 = pa.y != pb.y ? (data.currentY - pa.y) / (pb.y - pa.y) : 1;
+            var gradient2 = pc.y != pd.y ? (data.currentY - pc.y) / (pd.y - pc.y) : 1;
+
+            int sx = (int)Common.Interpolate(pa.x, pb.x, gradient1);
+            int ex = (int)Common.Interpolate(pc.x, pd.x, gradient2);
+
+
+            // 计算 开始Z值 和 结束Z值  
+            float z1 = Common.Interpolate(pa.z, pb.z, gradient1);
+            float z2 = Common.Interpolate(pc.z, pd.z, gradient2);
+
+            // 将法线插值到Y中  
+            var snl = Common.Interpolate(data.ndotla, data.ndotlb, gradient1);
+            var enl = Common.Interpolate(data.ndotlc, data.ndotld, gradient2);
+            // 将纹理坐标插值到Y中  
+            var su = Common.Interpolate(data.ua, data.ub, gradient1);
+            var eu = Common.Interpolate(data.uc, data.ud, gradient2);
+            var sv = Common.Interpolate(data.va, data.vb, gradient1);
+            var ev = Common.Interpolate(data.vc, data.vd, gradient2);
+
+
+            // 从左(sx)向右(ex)绘制一条线  
+            for (var x = sx; x < ex; x++)
+            {
+                float gradient = (x - sx) / (float)(ex - sx);
+
+                var z = Common.Interpolate(z1, z2, gradient);
+            
+                var ndotl = Common.Interpolate(snl, enl, gradient);
+                var u = Common.Interpolate(su, eu, gradient);
+                var v = Common.Interpolate(sv, ev, gradient);
+
+                Color textureColor;
+                if (texture != null)
+                    textureColor = texture.Map(u, v);
+                else
+                    textureColor = (Color)ColorConverter.ConvertFromString("White");
+
+                Color blendColor = new Color();
+
+                blendColor.ScR = color.ScR * textureColor.ScR * ndotl;
+                blendColor.ScG = color.ScG * textureColor.ScG * ndotl;
+                blendColor.ScB = color.ScB * textureColor.ScB * ndotl;
+                blendColor.ScA = color.ScA * textureColor.ScA * ndotl;
+
+                RenderBuffer.Instance.SetPixel3d(x, data.currentY, z, blendColor);
+            }
+        }
+
+        // 计算光向量和法线向量之间角度的余弦
+        // 返回0到1之间的值  
+        public static float ComputeNDotL(Vector3d vertex, Vector3d normal, Vector3d lightPosition)
+        {
+            var lightDirection = lightPosition - vertex;
+
+            normal.Normalize();
+            lightDirection.Normalize();
+
+            return Math.Max(0, Vector3d.Dot(normal, lightDirection));
+        }
+
+        public static void DrawTriangle(Vertex v1, Vertex v2, Vertex v3, Color color,Texture texture)
+        {
+            if (v1.Coordinates.y > v2.Coordinates.y)
+            {
+                var temp = v2;
+                v2 = v1;
+                v1 = temp;
+            }
+
+            if (v2.Coordinates.y > v3.Coordinates.y)
+            {
+                var temp = v2;
+                v2 = v3;
+                v3 = temp;
+            }
+
+            if (v1.Coordinates.y > v2.Coordinates.y)
+            {
+                var temp = v2;
+                v2 = v1;
+                v1 = temp;
+            }
+
+            Vector3d p1 = v1.Coordinates;
+            Vector3d p2 = v2.Coordinates;
+            Vector3d p3 = v3.Coordinates;
+
+         
+            Vector3d lightPos = new Vector3d(-100, 100, 100);
+            
+            //入射光线和法线的夹角
+            float nl1 = ComputeNDotL(v1.WorldCoordinates, v1.Normal, lightPos);
+            float nl2 = ComputeNDotL(v2.WorldCoordinates, v2.Normal, lightPos);
+            float nl3 = ComputeNDotL(v3.WorldCoordinates, v3.Normal, lightPos);
+
+            var data = new ScanLineData {  };
+
+            // 反向斜率  
+            float dP1P2, dP1P3; 
+            // 计算反向斜率  
+            if (p2.y - p1.y > 0)
+                dP1P2 = (p2.x - p1.x) / (p2.y - p1.y);
+            else
+                dP1P2 = 0;
+
+            if (p3.y - p1.y > 0)
+                dP1P3 = (p3.x - p1.x) / (p3.y - p1.y);
+            else
+                dP1P3 = 0;
+
+            // 对于第一种情况来说，三角形是这样的：  
+            // P1  
+            // -  
+            // --   
+            // - -  
+            // -  -  
+            // -   - P2  
+            // -  -  
+            // - -  
+            // -  
+            // P3  
+            if (dP1P2 > dP1P3)
+            {
+                for (var y = (int)p1.y; y <= (int)p3.y; y++)
+                {
+                    data.currentY = y;
+
+                    if (y < p2.y)
+                    {
+                        data.ndotla = nl1;
+                        data.ndotlb = nl3;
+                        data.ndotlc = nl1;
+                        data.ndotld = nl2;
+
+                        data.ua = v1.TextureCoordinates.x;
+                        data.ub = v3.TextureCoordinates.x;
+                        data.uc = v1.TextureCoordinates.x;
+                        data.ud = v2.TextureCoordinates.x;
+
+                        data.va = v1.TextureCoordinates.y;
+                        data.vb = v3.TextureCoordinates.y;
+                        data.vc = v1.TextureCoordinates.y;
+                        data.vd = v2.TextureCoordinates.y;
+                        ProcessScanLine(data, v1, v3, v1, v2, color, texture);
+                    }
+                    else
+                    {
+
+                        data.ndotla = nl1;
+                        data.ndotlb = nl3;
+                        data.ndotlc = nl2;
+                        data.ndotld = nl3;
+
+                        data.ua = v1.TextureCoordinates.x;
+                        data.ub = v3.TextureCoordinates.x;
+                        data.uc = v2.TextureCoordinates.x;
+                        data.ud = v3.TextureCoordinates.x;
+
+                        data.va = v1.TextureCoordinates.y;
+                        data.vb = v3.TextureCoordinates.y;
+                        data.vc = v2.TextureCoordinates.y;
+                        data.vd = v3.TextureCoordinates.y;
+                        ProcessScanLine(data, v1, v3, v2, v3, color, texture);
+                    }
+                }
+            }
+            // 对于第二种情况来说，三角形是这样的：  
+            //       P1  
+            //        -  
+            //       --   
+            //      - -  
+            //     -  -  
+            // P2 -   -   
+            //     -  -  
+            //      - -  
+            //        -  
+            //       P3  
+            else
+            {
+                for (var y = (int)p1.y; y <= (int)p3.y; y++)
+                {
+                    data.currentY = y;
+
+                    if (y < p2.y)
+                    {
+                        data.ndotla = nl1;
+                        data.ndotlb = nl2;
+                        data.ndotlc = nl1;
+                        data.ndotld = nl3;
+
+                        data.ua = v1.TextureCoordinates.x;
+                        data.ub = v2.TextureCoordinates.x;
+                        data.uc = v1.TextureCoordinates.x;
+                        data.ud = v3.TextureCoordinates.x;
+
+                        data.va = v1.TextureCoordinates.y;
+                        data.vb = v2.TextureCoordinates.y;
+                        data.vc = v1.TextureCoordinates.y;
+                        data.vd = v3.TextureCoordinates.y;
+                        ProcessScanLine(data, v1, v2, v1, v3, color, texture);
+                    }
+                    else
+                    {
+                        data.ndotla = nl2;
+                        data.ndotlb = nl3;
+                        data.ndotlc = nl1;
+                        data.ndotld = nl3;
+
+                        data.ua = v2.TextureCoordinates.x;
+                        data.ub = v3.TextureCoordinates.x;
+                        data.uc = v1.TextureCoordinates.x;
+                        data.ud = v3.TextureCoordinates.x;
+
+                        data.va = v2.TextureCoordinates.y;
+                        data.vb = v3.TextureCoordinates.y;
+                        data.vc = v1.TextureCoordinates.y;
+                        data.vd = v3.TextureCoordinates.y;
+                        ProcessScanLine(data, v2, v3, v1, v3, color, texture);
+                    }
+                }
+            }
         }
     }
 }
